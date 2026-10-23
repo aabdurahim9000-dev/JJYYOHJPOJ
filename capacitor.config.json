@@ -1,0 +1,6 @@
+{
+  "appId": "com.koni.tikhievody",
+  "appName": "Тихие воды",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}

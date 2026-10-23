@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Тихие воды</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:#000;color:#e6e1d6;font-family:Georgia,serif;overflow:hidden}
+#g{position:fixed;inset:0;transition:background 1s;background:#0d1117}
+#hs{position:absolute;inset:0}
+.hs{position:absolute;border:2px dashed rgba(127,179,200,.6);border-radius:10px;background:rgba(127,179,200,.08);animation:p 2s infinite}
+.hs.d{border-color:rgba(255,255,255,.15);background:none;animation:none}
+@keyframes p{50%{background:rgba(127,179,200,.24)}}
+#hud{position:absolute;top:calc(8px + env(safe-area-inset-top));right:14px;font-size:14px;opacity:.85}
+#box{position:absolute;left:3%;right:3%;bottom:calc(10px + env(safe-area-inset-bottom));height:34%;overflow:auto;background:rgba(8,10,14,.9);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 18px}
+#nm{color:#7fb3c8;font-weight:bold;font-size:15px;margin-bottom:4px;min-height:18px}
+#tx{font-size:clamp(15px,2.6vw,20px);line-height:1.45}
+#nx{position:absolute;right:14px;bottom:6px;opacity:.6;font-size:14px}
+#ch{position:absolute;left:10%;right:10%;top:45%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:5}
+#ch.inv{top:auto;bottom:38%;left:auto;right:3%;transform:none}
+#ch h1{margin:0;text-align:center;font-size:clamp(28px,6vw,48px);letter-spacing:2px}
+#ch p{margin:0 0 12px;text-align:center;opacity:.7}
+button{font:inherit;color:inherit;background:rgba(20,26,36,.95);border:1px solid #7fb3c8;border-radius:12px;padding:14px 16px;font-size:clamp(15px,2.6vw,19px)}
+button:active{background:#243246}
+</style></head><body>
+<div id="g"><div id="hs"></div><div id="hud"></div><div id="ch"></div>
+<div id="box"><div id="nm"></div><div id="tx"></div><div id="nx">▼</div></div></div>
+<script>
+const S={f:{},cl:[],fd:{},id:'title',i:0};
+const $=x=>document.getElementById(x);
+const save=()=>{try{localStorage.setItem('tv1',JSON.stringify(S))}catch(e){}};
+const SC={
+title:{bg:'#0d1117',s:[{ttl:1}]},
+p1:{bg:'linear-gradient(#0f1b2d,#05080d)',s:[
+{x:'Зима 1994 года. Четвёртый дом за ночь. Дверь заперта изнутри, а хозяин мёртв.'},
+{n:'Лис',x:'Знаешь, что мне не нравится? Здесь слишком чисто. Ни борьбы, ни следов. Как будто он просто лёг и перестал дышать.'},
+{n:'Илья',x:'Замок цел, окна закрыты. Выйти отсюда никто не мог.'},
+{n:'Лис',x:'Если я заткнулся, значит, мне страшно. Так что слушай, пока я ещё шучу.'},
+{c:[{l:'Осмотрим комнату вместе.',set:'together',go:'p2'},{l:'Я сам. Не мешай.',go:'p2'}]}]},
+p2:{bg:'linear-gradient(#1a1410,#07080a)',nx:'p3',s:[
+{inv:{need:3,hs:[
+{x:5,y:24,w:24,h:22,l:'Стол',t:'В ладони у мертвеца гладкий мокрый камень. Вода капает на пол, хотя в доме сухо.'},
+{x:34,y:8,w:30,h:14,l:'Потолок',t:'На потолке тёмный влажный след, будто кто-то стоял вверх ногами и смотрел вниз.'},
+{x:36,y:30,w:18,h:18,l:'Телефон',t:'Трубка мокрая изнутри. Последний звонок был в 3:07, но линия не работала с вечера.'},
+{x:70,y:12,w:24,h:34,l:'Окно',t:'Стекло заперто на шпингалет изнутри. На подоконнике ни пылинки.'},
+{x:5,y:6,w:20,h:14,l:'Фотография',t:'Выцветший снимок: здание в горах и подпись «Тихие воды». Это название ты слышал во сне.'}]}}]},
+p3:{bg:'linear-gradient(#0b1520,#04070b)',s:[
+{n:'Илья',x:'Санаторий «Тихие воды». Я слышу этот гул воды каждую ночь с самого детства.'},
+{if:'together',n:'Лис',x:'Ты побледнел. Рассказывай, пока я не придумал версию страшнее.'},
+{un:'together',n:'Лис',x:'Хорошо, молчи. Только если соберёшься исчезнуть, предупреди. Мне нужен свидетель, когда я скажу, что ты был неправ.'},
+{n:'Капитан Волков (по телефону)',x:'Корин, закрывай дело. Это приказ. И даже не думай ехать в горы.'},
+{c:[{l:'Поехать в санаторий.',go:'end'},{l:'Подчиниться приказу.',set:'obey',go:'end'}]}]},
+end:{bg:'#0d1117',s:[
+{x:()=>'Конец пролога. Собрано улик: '+S.cl.length+'. Глава 1 «Заезд» в разработке.'},
+{c:[{l:'В главное меню',go:'title'}]}]}
+};
+let tm=null,full='';
+function clr(){clearInterval(tm);tm=null;$('ch').innerHTML='';$('ch').className='';$('hs').innerHTML='';$('hud').textContent=''}
+function say(n,t){
+ $('nm').textContent=n;const el=$('tx');el.textContent='';$('nx').style.display='';
+ let k=0;full=t;
+ tm=setInterval(()=>{el.textContent=t.slice(0,++k);if(k>=t.length){clearInterval(tm);tm=null}},22);
+}
+function btn(t,f){const e=document.createElement('button');e.textContent=t;e.onclick=f;$('ch').appendChild(e)}
+function title(){
+ $('ch').innerHTML='<h1>Тихие воды</h1><p>детективная новелла</p>';
+ let v=null;try{v=JSON.parse(localStorage.getItem('tv1'))}catch(e){}
+ btn('Новая игра',()=>{S.f={};S.cl=[];S.fd={};S.id='p1';S.i=0;show()});
+ if(v&&v.id&&v.id!=='title')btn('Продолжить',()=>{Object.assign(S,v);show()});
+}
+function choose(st){
+ say('','Выбери ответ.');$('nx').style.display='none';
+ st.c.forEach(b=>btn(b.l,()=>{if(b.set)S.f[b.set]=1;if(b.go){S.id=b.go;S.i=0}else S.i++;show()}));
+}
+function inv(st){
+ const k=S.id+S.i;const f=S.fd[k]=S.fd[k]||[];
+ $('ch').className='inv';
+ const upd=()=>{
+  $('hud').textContent='Улики: '+f.length+' / '+st.inv.need;
+  if(f.length>=st.inv.need&&!$('ch').firstChild)btn('Закончить осмотр',()=>{S.i++;show()});
+ };
+ st.inv.hs.forEach((h,i)=>{
+  const d=document.createElement('div');d.className='hs'+(f.includes(i)?' d':'');
+  Object.assign(d.style,{left:h.x+'%',top:h.y+'%',width:h.w+'%',height:h.h+'%'});
+  d.onclick=()=>{
+   say(h.l,h.t);$('nx').style.display='none';
+   if(!f.includes(i)){f.push(i);if(!S.cl.includes(h.l))S.cl.push(h.l);d.className='hs d';save();upd()}
+  };
+  $('hs').appendChild(d);
+ });
+ say('Илья','Осмотри комнату: нажимай на подсвеченные места.');$('nx').style.display='none';upd();
+}
+function show(){
+ const sc=SC[S.id];$('g').style.background=sc.bg;
+ let st=sc.s[S.i];
+ while(st&&((st.if&&!S.f[st.if])||(st.un&&S.f[st.un])))st=sc.s[++S.i];
+ clr();
+ if(!st){if(sc.nx){S.id=sc.nx;S.i=0;show()}return}
+ $('box').style.display=st.ttl?'none':'';
+ if(st.ttl)return title();
+ save();
+ if(st.c)return choose(st);
+ if(st.inv)return inv(st);
+ say(st.n||'',typeof st.x==='function'?st.x():st.x);
+}
+$('box').onclick=()=>{
+ if(tm){clearInterval(tm);tm=null;$('tx').textContent=full;return}
+ const st=SC[S.id].s[S.i];
+ if(st&&!st.c&&!st.inv&&!st.ttl){S.i++;show()}
+};
+show();
+</script></body></html>
